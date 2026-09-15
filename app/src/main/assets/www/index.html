@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conta...Dor</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="topo">
+  <h1>Conta<span class="dor">...Dor</span></h1>
+  <p class="slogan">ele conta as suas contas, que é o motivo da nossa dor.</p>
+</header>
+
+<nav class="abas">
+  <button type="button" class="aba-btn ativa" data-aba="principal">Principal</button>
+  <button type="button" class="aba-btn" data-aba="calculadora">Calculadora</button>
+  <button type="button" class="aba-btn" data-aba="investimentos">Investimentos</button>
+</nav>
+
+<main class="container">
+
+<div id="aba-principal" class="painel-aba">
+
+  <section class="card seletor-mes">
+    <label for="mesInput">Mês</label>
+    <input type="month" id="mesInput">
+  </section>
+
+  <section class="card resumo" id="resumoCard">
+    <p class="resumo-texto" id="resumoTexto">Carregando...</p>
+    <div class="termometro">
+      <div class="termometro-barra" id="termometroBarra"></div>
+    </div>
+    <div class="resumo-numeros">
+      <div><span class="label">Entradas</span><span id="totalEntradas">R$ 0,00</span></div>
+      <div><span class="label">Saídas</span><span id="totalSaidas">R$ 0,00</span></div>
+      <div><span class="label">Saldo</span><span id="saldo">R$ 0,00</span></div>
+    </div>
+  </section>
+
+  <section class="card" id="alertasCard" style="display:none;">
+    <h2>⚠️ Vencendo em breve</h2>
+    <ul id="listaAlertas"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Entradas do mês</h2>
+    <div class="form-linha">
+      <label for="salarioInput">Salário</label>
+      <input type="number" id="salarioInput" step="0.01" placeholder="0,00">
+    </div>
+    <div class="form-linha">
+      <label for="tipoRecebimentoInput">Como você recebe</label>
+      <select id="tipoRecebimentoInput"></select>
+    </div>
+    <div id="outrasEntradasLista"></div>
+    <button type="button" class="btn-secundario" id="addOutraEntradaBtn">+ outra entrada</button>
+    <button type="button" class="btn-principal" id="salvarEntradasBtn">Salvar entradas</button>
+  </section>
+
+  <section class="card">
+    <h2>Nova dívida / conta</h2>
+    <form id="formDivida">
+      <div class="form-linha">
+        <label for="descricaoInput">Descrição</label>
+        <input type="text" id="descricaoInput" required placeholder="ex: Aluguel">
+      </div>
+      <div class="form-linha">
+        <label for="valorInput">Valor</label>
+        <input type="number" id="valorInput" step="0.01" required placeholder="0,00">
+      </div>
+      <div class="form-linha">
+        <label for="paraQuemInput">Para quem</label>
+        <input type="text" id="paraQuemInput" placeholder="ex: Imobiliária">
+      </div>
+      <div class="form-linha">
+        <label for="categoriaInput">Categoria</label>
+        <select id="categoriaInput"></select>
+      </div>
+      <div class="form-linha">
+        <label for="vencimentoInput">Vencimento</label>
+        <input type="date" id="vencimentoInput">
+      </div>
+      <button type="submit" class="btn-principal">Adicionar dívida</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Dívidas do mês</h2>
+    <div id="listaDividas"></div>
+  </section>
+
+  <section class="card">
+    <h2>Histórico</h2>
+    <div id="listaHistorico"></div>
+  </section>
+
+</div>
+
+<div id="aba-calculadora" class="painel-aba" style="display:none;">
+  <section class="card">
+    <h2>Calculadora</h2>
+    <div class="calc-visor" id="calcVisor">0</div>
+    <div class="calc-grade">
+      <button type="button" class="calc-btn calc-cinza" data-calc="limpar">C</button>
+      <button type="button" class="calc-btn calc-cinza" data-calc="apagar">⌫</button>
+      <button type="button" class="calc-btn calc-cinza" data-calc="%">%</button>
+      <button type="button" class="calc-btn calc-laranja" data-calc="/">÷</button>
+
+      <button type="button" class="calc-btn" data-calc="7">7</button>
+      <button type="button" class="calc-btn" data-calc="8">8</button>
+      <button type="button" class="calc-btn" data-calc="9">9</button>
+      <button type="button" class="calc-btn calc-laranja" data-calc="*">×</button>
+
+      <button type="button" class="calc-btn" data-calc="4">4</button>
+      <button type="button" class="calc-btn" data-calc="5">5</button>
+      <button type="button" class="calc-btn" data-calc="6">6</button>
+      <button type="button" class="calc-btn calc-laranja" data-calc="-">−</button>
+
+      <button type="button" class="calc-btn" data-calc="1">1</button>
+      <button type="button" class="calc-btn" data-calc="2">2</button>
+      <button type="button" class="calc-btn" data-calc="3">3</button>
+      <button type="button" class="calc-btn calc-laranja" data-calc="+">+</button>
+
+      <button type="button" class="calc-btn calc-largo" data-calc="0">0</button>
+      <button type="button" class="calc-btn" data-calc=",">,</button>
+      <button type="button" class="calc-btn calc-laranja" data-calc="=">=</button>
+    </div>
+  </section>
+</div>
+
+<div id="aba-investimentos" class="painel-aba" style="display:none;">
+  <section class="card">
+    <h2>Simulador de investimento</h2>
+    <p class="vazio" style="margin-top:-6px;">Veja quanto você teria guardando um valor todo mês.</p>
+    <div class="form-linha">
+      <label for="investValorInicial">Valor inicial (o que já tem guardado)</label>
+      <input type="number" id="investValorInicial" step="0.01" placeholder="0,00" value="0">
+    </div>
+    <div class="form-linha">
+      <label for="investAporteMensal">Quanto pretende guardar por mês</label>
+      <input type="number" id="investAporteMensal" step="0.01" placeholder="0,00">
+    </div>
+    <div class="form-linha">
+      <label for="investTaxaMensal">Rendimento estimado ao mês (%)</label>
+      <input type="number" id="investTaxaMensal" step="0.01" placeholder="ex: 0,8">
+    </div>
+    <div class="form-linha">
+      <label for="investMeses">Por quantos meses</label>
+      <input type="number" id="investMeses" step="1" placeholder="ex: 12">
+    </div>
+    <button type="button" class="btn-principal" id="investCalcularBtn">Simular</button>
+
+    <div id="investResultado" style="display:none; margin-top:16px;">
+      <div class="resumo-numeros" style="margin-bottom:10px;">
+        <div><span class="label">Total guardado</span><span id="investTotalGuardado">R$ 0,00</span></div>
+        <div><span class="label">Rendimento</span><span id="investTotalRendimento">R$ 0,00</span></div>
+        <div><span class="label">Total final</span><span id="investTotalFinal">R$ 0,00</span></div>
+      </div>
+      <div id="investTabela"></div>
+    </div>
+  </section>
+</div>
+
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

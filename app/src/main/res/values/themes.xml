@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.ContaDor" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_dark</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="android:windowBackground">@color/bg</item>
+    </style>
+</resources>

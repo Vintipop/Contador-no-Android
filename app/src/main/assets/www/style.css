@@ -1,0 +1,459 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Manrope:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+:root {
+  --bg: #F7F2E9;
+  --paper: #FFFDF9;
+  --ink: #2B2A26;
+  --ink-soft: #6B6459;
+  --primary: #235E58;
+  --primary-dark: #163F3B;
+  --accent: #E08A4B;
+  --success: #4C8C6B;
+  --success-bg: #E7F1EA;
+  --danger: #B8503F;
+  --danger-bg: #F8E7E2;
+  --pendente: #C99A3A;
+  --pendente-bg: #FBF0DA;
+  --linha: #E6DFD1;
+  --sombra: 0 2px 10px rgba(43, 42, 38, 0.07);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.topo {
+  text-align: center;
+  padding: 34px 20px 26px;
+}
+
+.topo h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 700;
+  font-size: 2.4rem;
+  margin: 0;
+  color: var(--primary-dark);
+  letter-spacing: -0.01em;
+}
+
+.topo h1 .dor {
+  color: var(--accent);
+  font-style: italic;
+  font-weight: 600;
+}
+
+.slogan {
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Cartões com cara de recibo/fatura: borda tracejada + "picote" no topo */
+.card {
+  background: var(--paper);
+  border-radius: 4px;
+  box-shadow: var(--sombra);
+  padding: 20px 18px;
+  position: relative;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 14px;
+  right: 14px;
+  height: 1px;
+  background-image: repeating-linear-gradient(
+    to right, var(--linha) 0, var(--linha) 6px, transparent 6px, transparent 12px
+  );
+}
+
+.card h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin: 0 0 14px;
+  color: var(--primary-dark);
+}
+
+/* Seletor de mês */
+.seletor-mes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+}
+
+.seletor-mes label {
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
+.seletor-mes input[type="month"] {
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.95rem;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Resumo + termômetro */
+.resumo {
+  background: var(--primary-dark);
+  color: #FBF7EF;
+}
+
+.resumo::before { display: none; }
+
+.resumo-texto {
+  font-family: 'Fraunces', serif;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.termometro {
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.termometro-barra {
+  height: 100%;
+  width: 0%;
+  border-radius: 6px;
+  background: linear-gradient(to right, var(--success), var(--pendente), var(--danger));
+  transition: width 0.4s ease;
+}
+
+.resumo-numeros {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.resumo-numeros > div {
+  flex: 1;
+  text-align: center;
+}
+
+.resumo-numeros .label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.resumo-numeros span:not(.label) {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Alertas de vencimento */
+#alertasCard {
+  background: var(--pendente-bg);
+  border: 1px solid var(--pendente);
+}
+
+#alertasCard h2 { color: #8A6316; }
+
+#alertasCard ul { list-style: none; padding: 0; margin: 0; }
+
+#alertasCard li {
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(138, 99, 22, 0.25);
+  font-size: 0.9rem;
+}
+
+#alertasCard li:last-child { border-bottom: none; }
+
+/* Formulários */
+.form-linha {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.form-linha label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.form-linha input,
+.form-linha select {
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 1rem;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.form-linha input:focus,
+.form-linha select:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.btn-principal, .btn-secundario {
+  border: none;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.btn-principal {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-principal:hover { background: var(--primary-dark); }
+
+.btn-secundario {
+  background: transparent;
+  color: var(--primary);
+  border: 1px dashed var(--primary);
+  margin-bottom: 8px;
+}
+
+/* Lista de dívidas */
+.divida-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--linha);
+}
+
+.divida-item:last-child { border-bottom: none; }
+
+.divida-info { flex: 1; min-width: 0; }
+
+.divida-desc {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.divida-meta {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+
+.divida-valor {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.divida-acoes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+}
+
+.badge.a_pagar { background: var(--pendente-bg); color: #8A6316; }
+.badge.pago { background: var(--success-bg); color: var(--success); }
+.badge.atrasado { background: var(--danger-bg); color: var(--danger); }
+
+.remover-btn {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.outra-entrada-linha {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.outra-entrada-linha input { flex: 1; }
+
+.vazio {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-style: italic;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.historico-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--linha);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.historico-item:last-child { border-bottom: none; }
+
+.historico-item .hist-saldo.negativo { color: var(--danger); font-weight: 700; }
+.historico-item .hist-saldo.positivo { color: var(--success); font-weight: 700; }
+
+/* Abas */
+.abas {
+  display: flex;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px;
+  gap: 6px;
+}
+
+.aba-btn {
+  flex: 1;
+  padding: 10px 6px;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-bottom: 3px solid var(--linha);
+  cursor: pointer;
+}
+
+.aba-btn.ativa {
+  color: var(--primary-dark);
+  border-bottom: 3px solid var(--primary);
+}
+
+/* Calculadora */
+.calc-visor {
+  background: var(--primary-dark);
+  color: #FBF7EF;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 2rem;
+  text-align: right;
+  padding: 18px 14px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.calc-grade {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.calc-btn {
+  padding: 16px 0;
+  border: none;
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.calc-btn.calc-cinza { background: var(--linha); }
+.calc-btn.calc-laranja { background: var(--accent); color: #fff; }
+.calc-btn.calc-largo { grid-column: span 2; }
+
+/* Tabela de investimento */
+.invest-tabela-linha {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--linha);
+}
+
+.invest-tabela-linha.cabecalho {
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+/* Editar dívida */
+.divida-editar-form {
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--linha);
+}
+
+.divida-editar-form .form-linha { margin-bottom: 8px; }
+
+.divida-editar-acoes {
+  display: flex;
+  gap: 8px;
+}
+
+.divida-editar-acoes .btn-principal,
+.divida-editar-acoes .btn-secundario {
+  margin-top: 0;
+}
+
+.editar-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+@media (min-width: 520px) {
+  .container { padding: 0 20px 60px; }
+  .abas { padding: 0 20px; }
+}
