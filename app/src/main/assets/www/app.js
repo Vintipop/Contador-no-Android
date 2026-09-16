@@ -49,6 +49,16 @@ async function api(metodo, caminho, corpo) {
 
 function renderResumo(resumo) {
   document.getElementById("resumoTexto").textContent = resumo.resumo_texto;
+
+  const parcelasEl = document.getElementById("resumoParcelas");
+  const parcelas = resumo.parcelas_recebimento;
+  if (parcelas && parcelas.partes > 1) {
+    parcelasEl.style.display = "block";
+    parcelasEl.textContent = `Isso costuma vir em ${parcelas.partes}x de ${formatarMoeda(parcelas.valor_por_parcela)}.`;
+  } else {
+    parcelasEl.style.display = "none";
+  }
+
   document.getElementById("totalEntradas").textContent = formatarMoeda(resumo.total_entradas);
   document.getElementById("totalSaidas").textContent = formatarMoeda(resumo.total_saidas);
 
@@ -222,9 +232,13 @@ function criarFormEdicaoDivida(d) {
       categoria: wrap.querySelector(".edit-categoria").value,
       vencimento: wrap.querySelector(".edit-vencimento").value,
     };
-    const resultado = await api("PUT", `/api/mes/${mesAtual}/dividas/${d.id}`, corpo);
-    dividaEmEdicao = null;
-    atualizarTela(resultado);
+    try {
+      const resultado = await api("PUT", `/api/mes/${mesAtual}/dividas/${d.id}`, corpo);
+      dividaEmEdicao = null;
+      atualizarTela(resultado);
+    } catch (erro) {
+      alert("Não deu pra salvar a edição: " + erro.message);
+    }
   });
 
   return wrap;
@@ -308,9 +322,18 @@ document.querySelectorAll("[data-calc]").forEach((btn) => {
       calcExpressao = "";
     } else if (tecla === "apagar") {
       calcExpressao = calcExpressao.slice(0, -1);
+    } else if (tecla === "%") {
+      try {
+        const expressaoSegura = calcExpressao.replace(/,/g, ".").replace(/[^0-9.+\-*/()]/g, "");
+        // eslint-disable-next-line no-new-func
+        const valor = Function(`"use strict"; return (${expressaoSegura})`)();
+        calcExpressao = String(Number((valor / 100).toFixed(6))).replace(".", ",");
+      } catch (e) {
+        calcExpressao = "Erro";
+      }
     } else if (tecla === "=") {
       try {
-        const expressaoSegura = calcExpressao.replace(/,/g, ".").replace(/[^0-9.+\-*/%()]/g, "");
+        const expressaoSegura = calcExpressao.replace(/,/g, ".").replace(/[^0-9.+\-*/()]/g, "");
         // eslint-disable-next-line no-new-func
         const resultado = Function(`"use strict"; return (${expressaoSegura})`)();
         calcExpressao = String(Number(resultado.toFixed(6))).replace(".", ",");

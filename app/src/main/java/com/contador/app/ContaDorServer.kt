@@ -116,6 +116,17 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
                 .format(totalEntradas, totalSaidas, Math.abs(saldo))
         }
 
+        val tipoRecebimento = dados.optString("tipo_recebimento", "mensal")
+        val partes = when (tipoRecebimento) {
+            "quinzenal" -> 2
+            "semanal" -> 4
+            else -> 1
+        }
+        val parcelas = JSONObject().apply {
+            put("partes", partes)
+            put("valor_por_parcela", if (partes > 1) salario / partes else salario)
+        }
+
         return JSONObject().apply {
             put("total_entradas", totalEntradas)
             put("total_saidas", totalSaidas)
@@ -125,6 +136,7 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
             put("por_status", porStatus)
             put("proximos_vencimentos", proximosOrdenados)
             put("resumo_texto", frase)
+            put("parcelas_recebimento", parcelas)
         }
     }
 
@@ -151,10 +163,18 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
     }
 
     private fun lerCorpo(session: IHTTPSession): JSONObject {
-        val files = HashMap<String, String>()
-        session.parseBody(files)
-        val raw = files["postData"] ?: return JSONObject()
-        return if (raw.isBlank()) JSONObject() else JSONObject(raw)
+        val contentLength = session.headers["content-length"]?.toIntOrNull() ?: 0
+        if (contentLength <= 0) return JSONObject()
+        val buffer = ByteArray(contentLength)
+        val stream = session.inputStream
+        var lido = 0
+        while (lido < contentLength) {
+            val n = stream.read(buffer, lido, contentLength - lido)
+            if (n == -1) break
+            lido += n
+        }
+        val texto = String(buffer, 0, lido, Charsets.UTF_8)
+        return if (texto.isBlank()) JSONObject() else JSONObject(texto)
     }
 
     private fun handleGet(uri: String): Response {
@@ -283,14 +303,14 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
 
     private fun servirAsset(caminho: String): Response {
         return try {
-            val stream = context.assets.open(caminho)
+            val bytes = context.assets.open(caminho).use { it.readBytes() }
             val tipo = when {
                 caminho.endsWith(".html") -> "text/html; charset=utf-8"
                 caminho.endsWith(".css") -> "text/css; charset=utf-8"
                 caminho.endsWith(".js") -> "application/javascript; charset=utf-8"
                 else -> "application/octet-stream"
             }
-            newChunkedResponse(Response.Status.OK, tipo, stream)
+            newFixedLengthResponse(Response.Status.OK, tipo, java.io.ByteArrayInputStream(bytes), bytes.size.toLong())
         } catch (e: Exception) {
             jsonError(404, "Arquivo não encontrado: $caminho")
         }
@@ -298,12 +318,13 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
 
     private fun jsonOk(payload: JSONObject, status: Int = 200): Response {
         val code = if (status == 201) Response.Status.CREATED else Response.Status.OK
-        return newFixedLengthResponse(code, "application/json; charset=utf-8", payload.toString())
+        val bytes = payload.toString().toByteArray(Charsets.UTF_8)
+        return newFixedLengthResponse(code, "application/json; charset=utf-8", java.io.ByteArrayInputStream(bytes), bytes.size.toLong())
     }
 
     private fun jsonError(status: Int, mensagem: String): Response {
         val code = Response.Status.lookup(status) ?: Response.Status.INTERNAL_ERROR
-        val body = JSONObject().put("erro", mensagem).toString()
-        return newFixedLengthResponse(code, "application/json; charset=utf-8", body)
+        val bytes = JSONObject().put("erro", mensagem).toString().toByteArray(Charsets.UTF_8)
+        return newFixedLengthResponse(code, "application/json; charset=utf-8", java.io.ByteArrayInputStream(bytes), bytes.size.toLong())
     }
 }

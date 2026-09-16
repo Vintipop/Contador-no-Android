@@ -134,6 +134,13 @@ body {
   margin: 0 0 16px;
 }
 
+.resumo-parcelas {
+  font-size: 0.82rem;
+  opacity: 0.85;
+  margin: -10px 0 16px;
+  font-style: italic;
+}
+
 .termometro {
   height: 10px;
   border-radius: 6px;
