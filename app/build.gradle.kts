@@ -11,13 +11,26 @@ android {
         applicationId = "com.contador.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
+    }
+
+    signingConfigs {
+        create("contador") {
+            storeFile = file("../keystore/contador.keystore")
+            storePassword = "contador123"
+            keyAlias = "contador"
+            keyPassword = "contador123"
+        }
     }
 
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("contador")
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("contador")
         }
     }
 

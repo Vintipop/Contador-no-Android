@@ -45,3 +45,25 @@ Igual fizemos com o Ígnis:
 - Os dados ficam salvos dentro do próprio app (armazenamento interno do
   Android). Se ela desinstalar o app, perde os dados — dá pra pensar
   depois num botão de "exportar/fazer backup".
+
+## Sobre a assinatura do APK (importante!)
+
+Antes dessa atualização, cada build do GitHub Actions assinava o APK com
+uma chave **aleatória, diferente a cada vez** — por isso o app novo não
+instalava por cima do antigo (o Android trata como apps diferentes).
+
+Agora o projeto usa uma chave **fixa**, salva em `keystore/contador.keystore`
+e referenciada no `app/build.gradle.kts`. A partir de agora, todo build vai
+usar essa mesma chave, então as próximas atualizações vão instalar por
+cima normalmente, sem perder os dados.
+
+**Só dessa vez** ela vai precisar **desinstalar o app antigo antes de
+instalar esse novo** (porque o antigo tem uma chave diferente e não tem
+jeito de "converter"). Isso significa que os dados que já tiver cadastrado
+vão se perder nessa troca — é um preço único pra resolver o problema de
+vez. A partir daí, nunca mais precisa desinstalar.
+
+> O keystore fica commitado no repositório de propósito, pra funcionar
+> igual em todo build do GitHub Actions sem configuração extra. Só faz
+> sentido porque o repositório é privado — não é uma prática recomendada
+> pra projetos públicos.

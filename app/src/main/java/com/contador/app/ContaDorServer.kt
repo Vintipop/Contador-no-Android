@@ -45,10 +45,50 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
 
     private fun carregarMes(mes: String): JSONObject {
         val arquivo = mesPath(mes)
-        if (!arquivo.exists()) return mesVazio(mes)
+        if (!arquivo.exists()) {
+            val herdado = criarMesHerdado(mes)
+            salvarMes(mes, herdado)
+            return herdado
+        }
         val dados = JSONObject(arquivo.readText())
         if (!dados.has("tipo_recebimento")) dados.put("tipo_recebimento", "mensal")
         return dados
+    }
+
+    /**
+     * Quando um mês é aberto pela primeira vez, ele herda do mês anterior mais
+     * recente: o salário/tipo de recebimento (que tende a se repetir) e as
+     * dívidas da categoria "contas fixas" (aluguel, internet, etc.), já que
+     * essas voltam a vencer todo mês. O status de cada uma volta pra
+     * "a pagar" e cada dívida ganha um id novo (é uma cópia, não a mesma).
+     */
+    private fun criarMesHerdado(mes: String): JSONObject {
+        val mesAnterior = listarMeses().filter { it < mes }.maxOrNull() ?: return mesVazio(mes)
+        val arquivoAnterior = mesPath(mesAnterior)
+        if (!arquivoAnterior.exists()) return mesVazio(mes)
+        val anterior = JSONObject(arquivoAnterior.readText())
+
+        val novo = mesVazio(mes)
+        novo.put("salario", anterior.optDouble("salario", 0.0))
+        novo.put("tipo_recebimento", anterior.optString("tipo_recebimento", "mensal"))
+
+        val dividasAnteriores = anterior.optJSONArray("dividas") ?: JSONArray()
+        val novasDividas = JSONArray()
+        for (i in 0 until dividasAnteriores.length()) {
+            val d = dividasAnteriores.getJSONObject(i)
+            if (d.optString("categoria") != "contas_fixas") continue
+            val copia = JSONObject(d.toString())
+            copia.put("id", UUID.randomUUID().toString().take(8))
+            copia.put("status", "a_pagar")
+            val vencAnterior = d.optString("vencimento", "")
+            if (vencAnterior.length == 10) {
+                val dia = vencAnterior.substring(8, 10)
+                copia.put("vencimento", "$mes-$dia")
+            }
+            novasDividas.put(copia)
+        }
+        novo.put("dividas", novasDividas)
+        return novo
     }
 
     private fun salvarMes(mes: String, dados: JSONObject) {
