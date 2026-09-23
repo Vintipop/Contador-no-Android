@@ -9,8 +9,15 @@
 <body>
 
 <header class="topo">
-  <h1>Conta<span class="dor">...Dor</span></h1>
-  <p class="slogan">ele conta as suas contas, que é o motivo da nossa dor.</p>
+  <button type="button" class="icone-topo icone-engrenagem" id="abrirConfigBtn" title="Configurações">⚙️</button>
+  <div class="topo-titulo">
+    <h1>Conta<span class="dor">...Dor</span></h1>
+    <p class="slogan">ele conta as suas contas, que é o motivo da nossa dor.</p>
+  </div>
+  <button type="button" class="icone-topo icone-avatar" id="abrirPerfilBtn" title="Perfil">
+    <img id="avatarTopo" src="" alt="" style="display:none;">
+    <span id="avatarInicial">🙂</span>
+  </button>
 </header>
 
 <nav class="abas">
@@ -84,6 +91,23 @@
         <label for="vencimentoInput">Vencimento</label>
         <input type="date" id="vencimentoInput">
       </div>
+      <label class="checkbox-linha">
+        <input type="checkbox" id="recorrenteInput">
+        Repetir todo mês
+      </label>
+      <div id="jurosCamposNovo" style="display:none;">
+        <div class="form-linha">
+          <label for="taxaJurosInput">Juros ao mês se atrasar (%)</label>
+          <input type="number" id="taxaJurosInput" step="0.01" placeholder="ex: 2,5">
+        </div>
+        <div class="form-linha">
+          <label for="tipoJurosInput">Tipo de juros</label>
+          <select id="tipoJurosInput">
+            <option value="simples">Simples</option>
+            <option value="composto">Composto</option>
+          </select>
+        </div>
+      </div>
       <button type="submit" class="btn-principal">Adicionar dívida</button>
     </form>
   </section>
@@ -135,7 +159,14 @@
 <div id="aba-investimentos" class="painel-aba" style="display:none;">
   <section class="card">
     <h2>Simulador de investimento</h2>
-    <p class="vazio" style="margin-top:-6px;">Veja quanto você teria guardando um valor todo mês.</p>
+    <p class="vazio" style="margin-top:-6px;">Busca o ativo real e simula com base no histórico dele.</p>
+    <div class="form-linha">
+      <label for="investTickerInput">Código do ativo (ex: ITSA4, PETR4)</label>
+      <input type="text" id="investTickerInput" placeholder="ex: ITSA4" style="text-transform:uppercase;">
+    </div>
+    <button type="button" class="btn-secundario" id="investBuscarBtn">Buscar ativo</button>
+    <p id="investAtivoInfo" class="vazio" style="display:none;"></p>
+
     <div class="form-linha">
       <label for="investValorInicial">Valor inicial (o que já tem guardado)</label>
       <input type="number" id="investValorInicial" step="0.01" placeholder="0,00" value="0">
@@ -161,6 +192,78 @@
         <div><span class="label">Total final</span><span id="investTotalFinal">R$ 0,00</span></div>
       </div>
       <div id="investTabela"></div>
+    </div>
+  </section>
+</div>
+
+<div id="aba-config" class="painel-aba" style="display:none;">
+  <section class="card">
+    <h2>Aparência</h2>
+    <div class="temas-grade">
+      <button type="button" class="tema-btn" data-tema="padrao">Padrão</button>
+      <button type="button" class="tema-btn" data-tema="escuro">Escuro</button>
+      <button type="button" class="tema-btn" data-tema="daltonico">Daltônico</button>
+      <button type="button" class="tema-btn" data-tema="vibrante">Vibrante</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Gráficos</h2>
+    <button type="button" class="btn-secundario" id="verGraficosBtn">Ver gastos por categoria</button>
+  </section>
+
+  <section class="card">
+    <h2>Backup</h2>
+    <p class="vazio" style="margin-top:-6px;">Gera um texto com tudo salvo. Copie e guarde num lugar seguro.</p>
+    <button type="button" class="btn-secundario" id="gerarBackupBtn">Gerar backup</button>
+    <textarea id="backupTexto" class="backup-textarea" style="display:none;" readonly></textarea>
+    <button type="button" class="btn-secundario" id="copiarBackupBtn" style="display:none;">Copiar</button>
+  </section>
+
+  <section class="card">
+    <h2>Restaurar backup</h2>
+    <p class="vazio" style="margin-top:-6px;">Cole aqui um backup gerado antes.</p>
+    <textarea id="restaurarTexto" class="backup-textarea" placeholder="Cole o backup aqui"></textarea>
+    <button type="button" class="btn-principal" id="restaurarBackupBtn">Restaurar</button>
+  </section>
+</div>
+
+<div id="aba-graficos" class="painel-aba" style="display:none;">
+  <section class="card">
+    <h2>Gastos por categoria (mês atual)</h2>
+    <canvas id="graficoCanvas" width="320" height="240"></canvas>
+    <div id="graficoLegenda"></div>
+  </section>
+</div>
+
+<div id="aba-perfil" class="painel-aba" style="display:none;">
+  <section class="card perfil-banner-card">
+    <div class="perfil-banner" id="perfilBannerPreview">
+      <label class="perfil-banner-editar">
+        Trocar banner
+        <input type="file" accept="image/*" id="perfilBannerInput" style="display:none;">
+      </label>
+    </div>
+    <div class="perfil-avatar-wrap">
+      <div class="perfil-avatar" id="perfilAvatarPreview">🙂</div>
+      <label class="perfil-avatar-editar">
+        ✏️
+        <input type="file" accept="image/*" id="perfilFotoInput" style="display:none;">
+      </label>
+    </div>
+    <div class="form-linha" style="margin-top:44px;">
+      <label for="perfilNomeInput">Seu nome</label>
+      <input type="text" id="perfilNomeInput" placeholder="Como quer ser chamada(o)">
+    </div>
+    <button type="button" class="btn-principal" id="salvarPerfilBtn">Salvar perfil</button>
+  </section>
+
+  <section class="card">
+    <h2>Resumo geral</h2>
+    <div class="resumo-numeros">
+      <div><span class="label">Arrecadado (total)</span><span id="perfilTotalEntradas">R$ 0,00</span></div>
+      <div><span class="label">Gasto (total)</span><span id="perfilTotalSaidas">R$ 0,00</span></div>
+      <div><span class="label">Meses acompanhados</span><span id="perfilMeses">0</span></div>
     </div>
   </section>
 </div>

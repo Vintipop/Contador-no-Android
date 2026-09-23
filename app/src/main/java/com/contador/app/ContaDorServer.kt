@@ -4,6 +4,7 @@ import android.content.Context
 import fi.iki.elonen.NanoHTTPD
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -13,24 +14,26 @@ import java.util.UUID
 /**
  * Conta...Dor - servidor local embutido no app.
  *
- * É a mesma lógica do app.py original (Termux), só que em Kotlin,
- * rodando dentro do próprio app Android em vez de precisar de Python.
- * A WebView do app acessa http://127.0.0.1:PORT/ como se fosse o
- * localhost:8080 de antes.
+ * Mesma lógica que era o app.py no Termux, em Kotlin, rodando dentro do
+ * próprio app Android. A WebView acessa http://127.0.0.1:PORT/.
  */
 class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) {
 
     private val dataDir: File = File(context.filesDir, "data").apply { mkdirs() }
+    private val configPath: File = File(context.filesDir, "config.json")
     private val statusValidos = setOf("a_pagar", "pago", "atrasado")
     private val tiposRecebimento = listOf("mensal", "quinzenal", "semanal", "outro")
     private val categoriasPadrao = listOf(
         "aluguel", "cartao", "emprestimo", "mercado", "contas_fixas", "pessoal", "outros"
     )
+    private val categoriasComJuros = setOf("cartao", "emprestimo")
+    private val categoriasFixas = setOf("aluguel", "contas_fixas", "emprestimo")
+    private val temasValidos = setOf("padrao", "escuro", "daltonico", "vibrante")
     private val mesRegex = Regex("""\d{4}-\d{2}""")
     private val dataFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     // ---------------------------------------------------------------
-    // Dados (um JSON por mês, salvo em armazenamento interno do app)
+    // Dados de mês (um JSON por mês, em armazenamento interno do app)
     // ---------------------------------------------------------------
 
     private fun mesPath(mes: String) = File(dataDir, "$mes.json")
@@ -56,11 +59,10 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
     }
 
     /**
-     * Quando um mês é aberto pela primeira vez, ele herda do mês anterior mais
-     * recente: o salário/tipo de recebimento (que tende a se repetir) e as
-     * dívidas da categoria "contas fixas" (aluguel, internet, etc.), já que
-     * essas voltam a vencer todo mês. O status de cada uma volta pra
-     * "a pagar" e cada dívida ganha um id novo (é uma cópia, não a mesma).
+     * Mês novo herda do mês anterior mais recente: salário/tipo de
+     * recebimento, e as dívidas que são "contas fixas por categoria"
+     * (aluguel, contas fixas, empréstimo) OU que foram marcadas
+     * manualmente como "repetir todo mês" (campo `recorrente`).
      */
     private fun criarMesHerdado(mes: String): JSONObject {
         val mesAnterior = listarMeses().filter { it < mes }.maxOrNull() ?: return mesVazio(mes)
@@ -76,8 +78,12 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
         val novasDividas = JSONArray()
         for (i in 0 until dividasAnteriores.length()) {
             val d = dividasAnteriores.getJSONObject(i)
-            if (d.optString("categoria") != "contas_fixas") continue
+            val ehFixaPorCategoria = d.optString("categoria") in categoriasFixas
+            val ehRecorrente = d.optBoolean("recorrente", false)
+            if (!ehFixaPorCategoria && !ehRecorrente) continue
             val copia = JSONObject(d.toString())
+            copia.remove("valor_atualizado")
+            copia.remove("dias_atraso")
             copia.put("id", UUID.randomUUID().toString().take(8))
             copia.put("status", "a_pagar")
             val vencAnterior = d.optString("vencimento", "")
@@ -102,6 +108,37 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
             ?.sorted()
             ?: emptyList()
 
+    // ---------------------------------------------------------------
+    // Config (tema escolhido + perfil do usuário)
+    // ---------------------------------------------------------------
+
+    private fun carregarConfig(): JSONObject {
+        if (!configPath.exists()) {
+            return JSONObject().apply {
+                put("tema", "padrao")
+                put("perfil", JSONObject().apply {
+                    put("nome", "")
+                    put("foto", "")
+                    put("banner", "")
+                })
+            }
+        }
+        val config = JSONObject(configPath.readText())
+        if (!config.has("tema")) config.put("tema", "padrao")
+        if (!config.has("perfil")) {
+            config.put("perfil", JSONObject().apply { put("nome", ""); put("foto", ""); put("banner", "") })
+        }
+        return config
+    }
+
+    private fun salvarConfig(config: JSONObject) {
+        configPath.writeText(config.toString())
+    }
+
+    // ---------------------------------------------------------------
+    // Cálculo do resumo (juros de atraso entram aqui)
+    // ---------------------------------------------------------------
+
     private fun calcularResumo(dados: JSONObject): JSONObject {
         val outras = dados.getJSONArray("outras_entradas")
         var totalOutras = 0.0
@@ -111,13 +148,39 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
         val totalEntradas = salario + totalOutras
 
         val dividas = dados.getJSONArray("dividas")
+        val hoje = Date()
+
+        // Calcula juros de dívidas em atraso (cartão/empréstimo com taxa definida)
+        // antes de somar totais, pra já refletir o valor atualizado.
+        for (i in 0 until dividas.length()) {
+            val d = dividas.getJSONObject(i)
+            d.remove("valor_atualizado")
+            d.remove("dias_atraso")
+            val taxa = d.optDouble("taxa_juros", 0.0)
+            if (taxa <= 0 || d.optString("status") == "pago") continue
+            val venc = d.optString("vencimento", "")
+            val vencData = try { dataFormat.parse(venc) } catch (e: Exception) { null } ?: continue
+            val diasAtraso = ((hoje.time - vencData.time) / (1000 * 60 * 60 * 24)).toInt()
+            if (diasAtraso <= 0) continue
+            val mesesAtraso = diasAtraso / 30.0
+            val valorOriginal = d.optDouble("valor", 0.0)
+            val tipoJuros = d.optString("tipo_juros", "simples")
+            val valorAtualizado = if (tipoJuros == "composto") {
+                valorOriginal * Math.pow(1 + taxa / 100, mesesAtraso)
+            } else {
+                valorOriginal * (1 + (taxa / 100) * mesesAtraso)
+            }
+            d.put("dias_atraso", diasAtraso)
+            d.put("valor_atualizado", Math.round(valorAtualizado * 100) / 100.0)
+        }
+
         var totalSaidas = 0.0
         val porCategoria = JSONObject()
         val porStatus = JSONObject().apply { put("a_pagar", 0.0); put("pago", 0.0); put("atrasado", 0.0) }
 
         for (i in 0 until dividas.length()) {
             val d = dividas.getJSONObject(i)
-            val valor = d.optDouble("valor", 0.0)
+            val valor = if (d.has("valor_atualizado")) d.getDouble("valor_atualizado") else d.optDouble("valor", 0.0)
             totalSaidas += valor
             val cat = d.optString("categoria", "outros")
             porCategoria.put(cat, porCategoria.optDouble(cat, 0.0) + valor)
@@ -128,7 +191,6 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
         val saldo = totalEntradas - totalSaidas
         val percentual = if (totalEntradas > 0) (totalSaidas / totalEntradas * 100) else 0.0
 
-        val hoje = Date()
         val proximos = JSONArray()
         for (i in 0 until dividas.length()) {
             val d = dividas.getJSONObject(i)
@@ -143,7 +205,6 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
                 proximos.put(item)
             }
         }
-        // ordenar por dias_restantes
         val listaOrdenada = (0 until proximos.length()).map { proximos.getJSONObject(it) }
             .sortedBy { it.getInt("dias_restantes") }
         val proximosOrdenados = JSONArray(listaOrdenada)
@@ -227,6 +288,29 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
         if (uri == "/api/meses") return jsonOk(JSONObject().put("meses", JSONArray(listarMeses())))
         if (uri == "/api/categorias") return jsonOk(JSONObject().put("categorias", JSONArray(categoriasPadrao)))
         if (uri == "/api/tipos-recebimento") return jsonOk(JSONObject().put("tipos", JSONArray(tiposRecebimento)))
+        if (uri == "/api/config") return jsonOk(carregarConfig())
+
+        if (uri == "/api/resumo-geral") {
+            var totalEntradasGeral = 0.0
+            var totalSaidasGeral = 0.0
+            val meses = listarMeses()
+            for (m in meses) {
+                val r = calcularResumo(carregarMes(m))
+                totalEntradasGeral += r.getDouble("total_entradas")
+                totalSaidasGeral += r.getDouble("total_saidas")
+            }
+            return jsonOk(JSONObject().apply {
+                put("total_entradas_geral", totalEntradasGeral)
+                put("total_saidas_geral", totalSaidasGeral)
+                put("meses_registrados", meses.size)
+            })
+        }
+
+        if (uri == "/api/backup") {
+            val mesesObj = JSONObject()
+            for (m in listarMeses()) mesesObj.put(m, JSONObject(mesPath(m).readText()))
+            return jsonOk(JSONObject().put("meses", mesesObj).put("config", carregarConfig()))
+        }
 
         Regex("""^/api/mes/(\d{4}-\d{2})$""").find(uri)?.let {
             val mes = it.groupValues[1]
@@ -237,6 +321,37 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
     }
 
     private fun handlePost(uri: String, corpo: JSONObject): Response {
+        if (uri == "/api/config") {
+            val config = carregarConfig()
+            if (corpo.has("tema") && temasValidos.contains(corpo.getString("tema"))) {
+                config.put("tema", corpo.getString("tema"))
+            }
+            if (corpo.has("perfil")) {
+                val perfilAtual = config.optJSONObject("perfil") ?: JSONObject()
+                val perfilNovo = corpo.getJSONObject("perfil")
+                val chaves = perfilNovo.keys()
+                while (chaves.hasNext()) {
+                    val k = chaves.next()
+                    perfilAtual.put(k, perfilNovo.get(k))
+                }
+                config.put("perfil", perfilAtual)
+            }
+            salvarConfig(config)
+            return jsonOk(config)
+        }
+
+        if (uri == "/api/backup/restaurar") {
+            val mesesObj = corpo.optJSONObject("meses") ?: return jsonError(400, "Backup inválido: faltando 'meses'")
+            val chaves = mesesObj.keys()
+            while (chaves.hasNext()) {
+                val chave = chaves.next()
+                if (!mesRegex.matches(chave)) continue
+                mesPath(chave).writeText(mesesObj.getJSONObject(chave).toString())
+            }
+            if (corpo.has("config")) salvarConfig(corpo.getJSONObject("config"))
+            return jsonOk(JSONObject().put("ok", true))
+        }
+
         Regex("""^/api/mes/(\d{4}-\d{2})/entradas$""").find(uri)?.let {
             val mes = it.groupValues[1]
             val dados = carregarMes(mes)
@@ -262,6 +377,9 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
                 put("categoria", corpo.optString("categoria", "outros"))
                 put("vencimento", corpo.optString("vencimento", ""))
                 put("status", "a_pagar")
+                put("recorrente", corpo.optBoolean("recorrente", false))
+                put("taxa_juros", corpo.optDouble("taxa_juros", 0.0))
+                put("tipo_juros", corpo.optString("tipo_juros", "simples"))
             }
             dados.getJSONArray("dividas").put(nova)
             salvarMes(mes, dados)
@@ -307,6 +425,9 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
             alvo.put("para_quem", corpo.optString("para_quem", alvo.optString("para_quem", "")).trim())
             alvo.put("categoria", corpo.optString("categoria", alvo.optString("categoria", "outros")))
             alvo.put("vencimento", corpo.optString("vencimento", alvo.optString("vencimento", "")))
+            alvo.put("recorrente", corpo.optBoolean("recorrente", alvo.optBoolean("recorrente", false)))
+            alvo.put("taxa_juros", corpo.optDouble("taxa_juros", alvo.optDouble("taxa_juros", 0.0)))
+            alvo.put("tipo_juros", corpo.optString("tipo_juros", alvo.optString("tipo_juros", "simples")))
             if (statusValidos.contains(corpo.optString("status", ""))) {
                 alvo.put("status", corpo.getString("status"))
             }
@@ -350,7 +471,7 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
                 caminho.endsWith(".js") -> "application/javascript; charset=utf-8"
                 else -> "application/octet-stream"
             }
-            newFixedLengthResponse(Response.Status.OK, tipo, java.io.ByteArrayInputStream(bytes), bytes.size.toLong())
+            newFixedLengthResponse(Response.Status.OK, tipo, ByteArrayInputStream(bytes), bytes.size.toLong())
         } catch (e: Exception) {
             jsonError(404, "Arquivo não encontrado: $caminho")
         }
@@ -359,12 +480,16 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
     private fun jsonOk(payload: JSONObject, status: Int = 200): Response {
         val code = if (status == 201) Response.Status.CREATED else Response.Status.OK
         val bytes = payload.toString().toByteArray(Charsets.UTF_8)
-        return newFixedLengthResponse(code, "application/json; charset=utf-8", java.io.ByteArrayInputStream(bytes), bytes.size.toLong())
+        return newFixedLengthResponse(code, "application/json; charset=utf-8", ByteArrayInputStream(bytes), bytes.size.toLong())
     }
 
     private fun jsonError(status: Int, mensagem: String): Response {
         val code = Response.Status.lookup(status) ?: Response.Status.INTERNAL_ERROR
         val bytes = JSONObject().put("erro", mensagem).toString().toByteArray(Charsets.UTF_8)
-        return newFixedLengthResponse(code, "application/json; charset=utf-8", java.io.ByteArrayInputStream(bytes), bytes.size.toLong())
+        return newFixedLengthResponse(code, "application/json; charset=utf-8", ByteArrayInputStream(bytes), bytes.size.toLong())
     }
+
+    // Exposto pro NotificationWorker checar vencimentos sem duplicar a leitura de disco.
+    fun listarMesesPublico(): List<String> = listarMeses()
+    fun carregarMesPublico(mes: String): JSONObject = carregarMes(mes)
 }

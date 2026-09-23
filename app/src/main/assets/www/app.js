@@ -148,10 +148,14 @@ function renderDividas(dados) {
     }
     const item = document.createElement("div");
     item.className = "divida-item";
+    const jurosHtml = d.valor_atualizado
+      ? `<div class="divida-juros">com juros hoje: ${formatarMoeda(d.valor_atualizado)} (${d.dias_atraso}d atraso)</div>`
+      : "";
     item.innerHTML = `
       <div class="divida-info">
-        <div class="divida-desc">${d.descricao}</div>
+        <div class="divida-desc">${d.descricao}${d.recorrente ? " 🔁" : ""}</div>
         <div class="divida-meta">${d.para_quem ? d.para_quem + " · " : ""}${CATEGORIA_LABEL[d.categoria] || d.categoria} · vence ${formatarDataCurta(d.vencimento)}</div>
+        ${jurosHtml}
       </div>
       <div class="divida-acoes">
         <span class="divida-valor">${formatarMoeda(d.valor)}</span>
@@ -188,6 +192,7 @@ function renderDividas(dados) {
 }
 
 function criarFormEdicaoDivida(d) {
+  const temJuros = d.categoria === "cartao" || d.categoria === "emprestimo";
   const wrap = document.createElement("div");
   wrap.className = "divida-editar-form";
   wrap.innerHTML = `
@@ -213,11 +218,33 @@ function criarFormEdicaoDivida(d) {
       <label>Vencimento</label>
       <input type="date" class="edit-vencimento" value="${d.vencimento || ""}">
     </div>
+    <label class="checkbox-linha">
+      <input type="checkbox" class="edit-recorrente" ${d.recorrente ? "checked" : ""}>
+      Repetir todo mês
+    </label>
+    <div class="edit-juros-campos" style="display:${temJuros ? "block" : "none"};">
+      <div class="form-linha">
+        <label>Juros ao mês se atrasar (%)</label>
+        <input type="number" step="0.01" class="edit-taxa-juros" value="${d.taxa_juros || ""}">
+      </div>
+      <div class="form-linha">
+        <label>Tipo de juros</label>
+        <select class="edit-tipo-juros">
+          <option value="simples" ${d.tipo_juros !== "composto" ? "selected" : ""}>Simples</option>
+          <option value="composto" ${d.tipo_juros === "composto" ? "selected" : ""}>Composto</option>
+        </select>
+      </div>
+    </div>
     <div class="divida-editar-acoes">
       <button type="button" class="btn-principal edit-salvar">Salvar</button>
       <button type="button" class="btn-secundario edit-cancelar">Cancelar</button>
     </div>
   `;
+
+  wrap.querySelector(".edit-categoria").addEventListener("change", (e) => {
+    const mostrar = e.target.value === "cartao" || e.target.value === "emprestimo";
+    wrap.querySelector(".edit-juros-campos").style.display = mostrar ? "block" : "none";
+  });
 
   wrap.querySelector(".edit-cancelar").addEventListener("click", () => {
     dividaEmEdicao = null;
@@ -231,6 +258,9 @@ function criarFormEdicaoDivida(d) {
       para_quem: wrap.querySelector(".edit-para-quem").value,
       categoria: wrap.querySelector(".edit-categoria").value,
       vencimento: wrap.querySelector(".edit-vencimento").value,
+      recorrente: wrap.querySelector(".edit-recorrente").checked,
+      taxa_juros: Number(wrap.querySelector(".edit-taxa-juros").value) || 0,
+      tipo_juros: wrap.querySelector(".edit-tipo-juros").value,
     };
     try {
       const resultado = await api("PUT", `/api/mes/${mesAtual}/dividas/${d.id}`, corpo);
@@ -296,13 +326,14 @@ async function carregarTiposRecebimento() {
 // Abas
 // ---------------------------------------------------------------------
 
+function mostrarPainel(nome) {
+  document.querySelectorAll(".painel-aba").forEach((p) => (p.style.display = "none"));
+  document.getElementById(`aba-${nome}`).style.display = "block";
+  document.querySelectorAll(".aba-btn").forEach((b) => b.classList.toggle("ativa", b.dataset.aba === nome));
+}
+
 document.querySelectorAll(".aba-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".aba-btn").forEach((b) => b.classList.remove("ativa"));
-    document.querySelectorAll(".painel-aba").forEach((p) => (p.style.display = "none"));
-    btn.classList.add("ativa");
-    document.getElementById(`aba-${btn.dataset.aba}`).style.display = "block";
-  });
+  btn.addEventListener("click", () => mostrarPainel(btn.dataset.aba));
 });
 
 // ---------------------------------------------------------------------
@@ -411,6 +442,11 @@ document.getElementById("salvarEntradasBtn").addEventListener("click", async () 
   atualizarTela(resultado);
 });
 
+document.getElementById("categoriaInput").addEventListener("change", (e) => {
+  const mostrar = e.target.value === "cartao" || e.target.value === "emprestimo";
+  document.getElementById("jurosCamposNovo").style.display = mostrar ? "block" : "none";
+});
+
 document.getElementById("formDivida").addEventListener("submit", async (e) => {
   e.preventDefault();
   const corpo = {
@@ -419,10 +455,14 @@ document.getElementById("formDivida").addEventListener("submit", async (e) => {
     para_quem: document.getElementById("paraQuemInput").value,
     categoria: document.getElementById("categoriaInput").value,
     vencimento: document.getElementById("vencimentoInput").value,
+    recorrente: document.getElementById("recorrenteInput").checked,
+    taxa_juros: Number(document.getElementById("taxaJurosInput").value) || 0,
+    tipo_juros: document.getElementById("tipoJurosInput").value,
   };
   const resultado = await api("POST", `/api/mes/${mesAtual}/dividas`, corpo);
   atualizarTela(resultado);
   e.target.reset();
+  document.getElementById("jurosCamposNovo").style.display = "none";
 });
 
 // ---------------------------------------------------------------------
@@ -435,3 +475,288 @@ document.getElementById("formDivida").addEventListener("submit", async (e) => {
   await carregarTiposRecebimento();
   await carregarMes();
 })();
+
+// ---------------------------------------------------------------------
+// Config: tema + perfil
+// ---------------------------------------------------------------------
+
+let configAtual = { tema: "padrao", perfil: { nome: "", foto: "", banner: "" } };
+let perfilFotoBase64 = "";
+let perfilBannerBase64 = "";
+
+function aplicarTema(tema) {
+  document.documentElement.setAttribute("data-tema", tema);
+  document.querySelectorAll(".tema-btn").forEach((b) => {
+    b.classList.toggle("ativo", b.dataset.tema === tema);
+  });
+}
+
+function aplicarAvatarTopo(fotoBase64) {
+  const img = document.getElementById("avatarTopo");
+  const inicial = document.getElementById("avatarInicial");
+  if (fotoBase64) {
+    img.src = fotoBase64;
+    img.style.display = "block";
+    inicial.style.display = "none";
+  } else {
+    img.style.display = "none";
+    inicial.style.display = "block";
+  }
+}
+
+async function carregarConfig() {
+  try {
+    configAtual = await api("GET", "/api/config");
+  } catch (erro) {
+    configAtual = { tema: "padrao", perfil: { nome: "", foto: "", banner: "" } };
+  }
+  aplicarTema(configAtual.tema || "padrao");
+  aplicarAvatarTopo(configAtual.perfil?.foto || "");
+}
+
+document.querySelectorAll(".tema-btn").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    aplicarTema(btn.dataset.tema);
+    try {
+      await api("POST", "/api/config", { tema: btn.dataset.tema });
+    } catch (erro) {
+      // se falhar, o tema ainda fica aplicado nessa sessão
+    }
+  });
+});
+
+document.getElementById("abrirConfigBtn").addEventListener("click", () => mostrarPainel("config"));
+
+document.getElementById("abrirPerfilBtn").addEventListener("click", async () => {
+  mostrarPainel("perfil");
+  await carregarPerfil();
+});
+
+// ---------------------------------------------------------------------
+// Perfil
+// ---------------------------------------------------------------------
+
+async function carregarPerfil() {
+  const perfil = configAtual.perfil || {};
+  document.getElementById("perfilNomeInput").value = perfil.nome || "";
+  perfilFotoBase64 = perfil.foto || "";
+  perfilBannerBase64 = perfil.banner || "";
+  renderPerfilPreview();
+
+  try {
+    const geral = await api("GET", "/api/resumo-geral");
+    document.getElementById("perfilTotalEntradas").textContent = formatarMoeda(geral.total_entradas_geral);
+    document.getElementById("perfilTotalSaidas").textContent = formatarMoeda(geral.total_saidas_geral);
+    document.getElementById("perfilMeses").textContent = geral.meses_registrados;
+  } catch (erro) {
+    // resumo geral é só um extra; se falhar, não trava o resto da tela
+  }
+}
+
+function renderPerfilPreview() {
+  const avatarPreview = document.getElementById("perfilAvatarPreview");
+  avatarPreview.innerHTML = perfilFotoBase64
+    ? `<img src="${perfilFotoBase64}" alt="">`
+    : "🙂";
+
+  const bannerPreview = document.getElementById("perfilBannerPreview");
+  const editarLabel = bannerPreview.querySelector(".perfil-banner-editar");
+  bannerPreview.querySelectorAll("img").forEach((img) => img.remove());
+  if (perfilBannerBase64) {
+    const img = document.createElement("img");
+    img.src = perfilBannerBase64;
+    bannerPreview.insertBefore(img, editarLabel);
+  }
+}
+
+function lerArquivoComoBase64(arquivo) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = () => resolve(leitor.result);
+    leitor.onerror = reject;
+    leitor.readAsDataURL(arquivo);
+  });
+}
+
+document.getElementById("perfilFotoInput").addEventListener("change", async (e) => {
+  if (!e.target.files[0]) return;
+  perfilFotoBase64 = await lerArquivoComoBase64(e.target.files[0]);
+  renderPerfilPreview();
+});
+
+document.getElementById("perfilBannerInput").addEventListener("change", async (e) => {
+  if (!e.target.files[0]) return;
+  perfilBannerBase64 = await lerArquivoComoBase64(e.target.files[0]);
+  renderPerfilPreview();
+});
+
+document.getElementById("salvarPerfilBtn").addEventListener("click", async () => {
+  const perfil = {
+    nome: document.getElementById("perfilNomeInput").value,
+    foto: perfilFotoBase64,
+    banner: perfilBannerBase64,
+  };
+  try {
+    configAtual = await api("POST", "/api/config", { perfil });
+    aplicarAvatarTopo(perfil.foto);
+    alert("Perfil salvo!");
+  } catch (erro) {
+    alert("Não deu pra salvar o perfil: " + erro.message);
+  }
+});
+
+// ---------------------------------------------------------------------
+// Gráficos (canvas simples, sem biblioteca externa)
+// ---------------------------------------------------------------------
+
+const CORES_GRAFICO = ["#235E58", "#E08A4B", "#B8503F", "#C99A3A", "#4C8C6B", "#6B4EA6", "#0B5FA5"];
+
+document.getElementById("verGraficosBtn").addEventListener("click", async () => {
+  mostrarPainel("graficos");
+  await desenharGrafico();
+});
+
+async function desenharGrafico() {
+  const { resumo } = await api("GET", `/api/mes/${mesAtual}`);
+  const porCategoria = resumo.por_categoria || {};
+  const categorias = Object.keys(porCategoria).filter((c) => porCategoria[c] > 0);
+
+  const canvas = document.getElementById("graficoCanvas");
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const legenda = document.getElementById("graficoLegenda");
+  legenda.innerHTML = "";
+
+  if (categorias.length === 0) {
+    ctx.fillStyle = "#6B6459";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Sem gastos registrados esse mês.", 10, 30);
+    return;
+  }
+
+  const valores = categorias.map((c) => porCategoria[c]);
+  const maiorValor = Math.max(...valores);
+  const larguraBarra = canvas.width / categorias.length;
+  const alturaMaxima = canvas.height - 50;
+
+  categorias.forEach((cat, i) => {
+    const valor = porCategoria[cat];
+    const altura = maiorValor > 0 ? (valor / maiorValor) * alturaMaxima : 0;
+    const x = i * larguraBarra + larguraBarra * 0.15;
+    const y = canvas.height - 30 - altura;
+    const largura = larguraBarra * 0.7;
+    const cor = CORES_GRAFICO[i % CORES_GRAFICO.length];
+
+    ctx.fillStyle = cor;
+    ctx.fillRect(x, y, largura, altura);
+
+    ctx.fillStyle = "#2B2A26";
+    ctx.font = "10px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(formatarMoeda(valor).replace("R$", "").trim(), x + largura / 2, y - 4);
+
+    const item = document.createElement("div");
+    item.className = "legenda-item";
+    item.innerHTML = `<span class="legenda-cor" style="background:${cor}"></span>${CATEGORIA_LABEL[cat] || cat}`;
+    legenda.appendChild(item);
+  });
+}
+
+// ---------------------------------------------------------------------
+// Backup e Restore
+// ---------------------------------------------------------------------
+
+document.getElementById("gerarBackupBtn").addEventListener("click", async () => {
+  try {
+    const backup = await api("GET", "/api/backup");
+    const texto = JSON.stringify(backup);
+    const area = document.getElementById("backupTexto");
+    area.value = texto;
+    area.style.display = "block";
+    document.getElementById("copiarBackupBtn").style.display = "block";
+  } catch (erro) {
+    alert("Não deu pra gerar o backup: " + erro.message);
+  }
+});
+
+document.getElementById("copiarBackupBtn").addEventListener("click", () => {
+  const area = document.getElementById("backupTexto");
+  area.select();
+  try {
+    document.execCommand("copy");
+    alert("Copiado! Cola e guarda num lugar seguro (notas, WhatsApp pra você mesma, etc).");
+  } catch (erro) {
+    alert("Não consegui copiar automaticamente — seleciona o texto manualmente.");
+  }
+});
+
+document.getElementById("restaurarBackupBtn").addEventListener("click", async () => {
+  const texto = document.getElementById("restaurarTexto").value.trim();
+  if (!texto) return;
+  let backup;
+  try {
+    backup = JSON.parse(texto);
+  } catch (erro) {
+    alert("Esse texto não parece um backup válido.");
+    return;
+  }
+  if (!confirm("Isso vai substituir os dados dos meses que já existirem no backup. Continuar?")) return;
+  try {
+    await api("POST", "/api/backup/restaurar", backup);
+    await carregarConfig();
+    await carregarMes();
+    alert("Backup restaurado!");
+  } catch (erro) {
+    alert("Não deu pra restaurar: " + erro.message);
+  }
+});
+
+// ---------------------------------------------------------------------
+// Investimento: busca de ativo real (brapi.dev, sem custo)
+// ---------------------------------------------------------------------
+
+document.getElementById("investBuscarBtn").addEventListener("click", async () => {
+  const ticker = document.getElementById("investTickerInput").value.trim().toUpperCase();
+  const infoEl = document.getElementById("investAtivoInfo");
+  if (!ticker) return;
+
+  infoEl.style.display = "block";
+  infoEl.textContent = "Buscando...";
+
+  try {
+    const resp = await fetch(`https://brapi.dev/api/quote/${ticker}?range=6mo&interval=1mo`);
+    if (!resp.ok) throw new Error("Ativo não encontrado");
+    const dados = await resp.json();
+    const resultado = dados.results && dados.results[0];
+    if (!resultado) throw new Error("Ativo não encontrado");
+
+    const precoAtual = resultado.regularMarketPrice;
+    let taxaEstimada = null;
+
+    const historico = resultado.historicalDataPrice;
+    if (historico && historico.length > 1) {
+      const primeiro = historico[0].close;
+      const ultimo = historico[historico.length - 1].close;
+      const mesesPassados = historico.length - 1;
+      if (primeiro > 0 && mesesPassados > 0) {
+        taxaEstimada = (Math.pow(ultimo / primeiro, 1 / mesesPassados) - 1) * 100;
+      }
+    }
+
+    if (taxaEstimada !== null) {
+      document.getElementById("investTaxaMensal").value = taxaEstimada.toFixed(2);
+      infoEl.textContent = `${resultado.longName || ticker}: preço atual ${formatarMoeda(precoAtual)} · rendimento médio histórico ~${taxaEstimada.toFixed(2)}% ao mês (baseado nos últimos 6 meses — não é garantia de retorno futuro).`;
+    } else {
+      infoEl.textContent = `${resultado.longName || ticker}: preço atual ${formatarMoeda(precoAtual)}. Não deu pra estimar um rendimento histórico — preenche a taxa manualmente.`;
+    }
+  } catch (erro) {
+    infoEl.textContent = "Não consegui buscar esse ativo agora (verifique o código ou sua internet). Você ainda pode simular preenchendo a taxa manualmente.";
+  }
+});
+
+// ---------------------------------------------------------------------
+// Inicialização (config)
+// ---------------------------------------------------------------------
+
+carregarConfig();

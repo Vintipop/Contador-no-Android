@@ -18,6 +18,64 @@
   --sombra: 0 2px 10px rgba(43, 42, 38, 0.07);
 }
 
+/* Tema escuro */
+html[data-tema="escuro"] {
+  --bg: #171916;
+  --paper: #21241F;
+  --ink: #EDE9E0;
+  --ink-soft: #A6A196;
+  --primary: #4FA69C;
+  --primary-dark: #0F2624;
+  --accent: #F0A468;
+  --success: #6FBF95;
+  --success-bg: #1E2E27;
+  --danger: #E08776;
+  --danger-bg: #33211D;
+  --pendente: #E0BB63;
+  --pendente-bg: #332B18;
+  --linha: #383B34;
+  --sombra: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* Tema daltônico-friendly: evita depender só de vermelho/verde,
+   usa azul/laranja/amarelo, que ficam distinguíveis nos tipos mais comuns */
+html[data-tema="daltonico"] {
+  --bg: #F5F5F7;
+  --paper: #FFFFFF;
+  --ink: #1B1B1D;
+  --ink-soft: #5B5B60;
+  --primary: #0B5FA5;
+  --primary-dark: #073E6C;
+  --accent: #E08A00;
+  --success: #0B5FA5;
+  --success-bg: #DCEBF8;
+  --danger: #B8600A;
+  --danger-bg: #FBEBD7;
+  --pendente: #6B4EA6;
+  --pendente-bg: #EAE2F5;
+  --linha: #D8D8DC;
+  --sombra: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* Tema vibrante/moderno */
+html[data-tema="vibrante"] {
+  --bg: #1A1330;
+  --paper: #241A42;
+  --ink: #F2EEFB;
+  --ink-soft: #B6A9DE;
+  --primary: #FF4D8D;
+  --primary-dark: #7A1745;
+  --accent: #3DD9EB;
+  --success: #3DEBA7;
+  --success-bg: #16352C;
+  --danger: #FF4D8D;
+  --danger-bg: #3A1530;
+  --pendente: #FFD23D;
+  --pendente-bg: #3A2F0E;
+  --linha: #3A2E5C;
+  --sombra: 0 2px 14px rgba(255, 77, 141, 0.15);
+}
+
 * { box-sizing: border-box; }
 
 body {
@@ -29,14 +87,42 @@ body {
 }
 
 .topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   text-align: center;
-  padding: 34px 20px 26px;
+  padding: 20px 16px 22px;
+}
+
+.topo-titulo { flex: 1; }
+
+.icone-topo {
+  background: var(--paper);
+  border: 1px solid var(--linha);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.icone-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .topo h1 {
   font-family: 'Fraunces', serif;
   font-weight: 700;
-  font-size: 2.4rem;
+  font-size: 1.9rem;
   margin: 0;
   color: var(--primary-dark);
   letter-spacing: -0.01em;
@@ -463,4 +549,179 @@ body {
 @media (min-width: 520px) {
   .container { padding: 0 20px 60px; }
   .abas { padding: 0 20px; }
+}
+
+/* Checkbox "repetir todo mês" */
+.checkbox-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.checkbox-linha input { width: 16px; height: 16px; }
+
+/* Juros badge na lista de dívidas */
+.divida-juros {
+  font-size: 0.75rem;
+  color: var(--danger);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* Seleção de temas */
+.temas-grade {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.tema-btn {
+  padding: 14px 8px;
+  border-radius: 8px;
+  border: 2px solid var(--linha);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tema-btn.ativo {
+  border-color: var(--primary);
+  background: var(--paper);
+}
+
+/* Backup/Restore */
+.backup-textarea {
+  width: 100%;
+  min-height: 100px;
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  padding: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  background: var(--bg);
+  color: var(--ink);
+  margin-bottom: 10px;
+  resize: vertical;
+}
+
+/* Gráficos */
+#graficoCanvas {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+#graficoLegenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 12px;
+  font-size: 0.8rem;
+}
+
+.legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legenda-cor {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Perfil */
+.perfil-banner-card {
+  padding: 0 0 20px;
+  overflow: visible;
+  position: relative;
+}
+
+.perfil-banner {
+  height: 110px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.perfil-banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px 4px 0 0;
+}
+
+.perfil-banner-editar {
+  position: relative;
+  z-index: 1;
+  margin: 8px;
+  background: rgba(0,0,0,0.4);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.perfil-avatar-wrap {
+  position: relative;
+  width: 76px;
+  margin: -38px 0 0 18px;
+}
+
+.perfil-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 4px solid var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  overflow: hidden;
+}
+
+.perfil-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.perfil-avatar-editar {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: var(--primary);
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: 2px solid var(--paper);
+}
+
+.perfil-banner-card .form-linha,
+.perfil-banner-card .btn-principal {
+  margin-left: 18px;
+  margin-right: 18px;
+  width: calc(100% - 36px);
 }
