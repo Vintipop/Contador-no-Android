@@ -214,17 +214,19 @@
 
   <section class="card">
     <h2>Backup</h2>
-    <p class="vazio" style="margin-top:-6px;">Gera um texto com tudo salvo. Copie e guarde num lugar seguro.</p>
-    <button type="button" class="btn-secundario" id="gerarBackupBtn">Gerar backup</button>
+    <p class="vazio" style="margin-top:-6px;">Gera um arquivo .txt com tudo salvo. Guarde num lugar seguro (Drive, WhatsApp pra você mesma, etc).</p>
+    <button type="button" class="btn-secundario" id="gerarBackupBtn">Baixar backup (.txt)</button>
     <textarea id="backupTexto" class="backup-textarea" style="display:none;" readonly></textarea>
     <button type="button" class="btn-secundario" id="copiarBackupBtn" style="display:none;">Copiar</button>
   </section>
 
   <section class="card">
     <h2>Restaurar backup</h2>
-    <p class="vazio" style="margin-top:-6px;">Cole aqui um backup gerado antes.</p>
-    <textarea id="restaurarTexto" class="backup-textarea" placeholder="Cole o backup aqui"></textarea>
-    <button type="button" class="btn-principal" id="restaurarBackupBtn">Restaurar</button>
+    <p class="vazio" style="margin-top:-6px;">Escolha o arquivo .txt de um backup gerado antes.</p>
+    <label class="btn-principal" style="display:block; text-align:center; cursor:pointer;">
+      Escolher arquivo de backup
+      <input type="file" id="restaurarArquivoInput" accept=".txt,text/plain" style="display:none;">
+    </label>
   </section>
 </div>
 

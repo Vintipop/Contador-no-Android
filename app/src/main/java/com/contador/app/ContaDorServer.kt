@@ -48,21 +48,25 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
 
     private fun carregarMes(mes: String): JSONObject {
         val arquivo = mesPath(mes)
-        if (!arquivo.exists()) {
-            val herdado = criarMesHerdado(mes)
-            salvarMes(mes, herdado)
-            return herdado
+        val existiaAntes = arquivo.exists()
+        val dados = if (!existiaAntes) {
+            criarMesHerdado(mes)
+        } else {
+            val d = JSONObject(arquivo.readText())
+            if (!d.has("tipo_recebimento")) d.put("tipo_recebimento", "mensal")
+            d
         }
-        val dados = JSONObject(arquivo.readText())
-        if (!dados.has("tipo_recebimento")) dados.put("tipo_recebimento", "mensal")
+        val precisaSalvar = aplicarHerancaDeRecorrentes(mes, dados)
+        if (!existiaAntes || precisaSalvar) salvarMes(mes, dados)
         return dados
     }
 
     /**
-     * Mês novo herda do mês anterior mais recente: salário/tipo de
-     * recebimento, e as dívidas que são "contas fixas por categoria"
-     * (aluguel, contas fixas, empréstimo) OU que foram marcadas
-     * manualmente como "repetir todo mês" (campo `recorrente`).
+     * Mês novo herda do mês anterior mais recente: só salário e tipo de
+     * recebimento aqui — as dívidas recorrentes entram via
+     * aplicarHerancaDeRecorrentes, chamada sempre que o mês é carregado
+     * (não só na criação), pra "pegar" contas marcadas como recorrentes
+     * depois que o mês já existia.
      */
     private fun criarMesHerdado(mes: String): JSONObject {
         val mesAnterior = listarMeses().filter { it < mes }.maxOrNull() ?: return mesVazio(mes)
@@ -73,14 +77,39 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
         val novo = mesVazio(mes)
         novo.put("salario", anterior.optDouble("salario", 0.0))
         novo.put("tipo_recebimento", anterior.optString("tipo_recebimento", "mensal"))
+        return novo
+    }
 
+    /**
+     * Olha o mês anterior mais recente e copia pro mês atual qualquer
+     * dívida "fixa por categoria" ou marcada como recorrente que ainda não
+     * esteja presente (identificada por descrição+categoria+para_quem).
+     * Retorna true se adicionou algo (pra saber se precisa salvar).
+     */
+    private fun aplicarHerancaDeRecorrentes(mes: String, dados: JSONObject): Boolean {
+        val mesAnterior = listarMeses().filter { it < mes }.maxOrNull() ?: return false
+        if (mesAnterior == mes) return false
+        val arquivoAnterior = mesPath(mesAnterior)
+        if (!arquivoAnterior.exists()) return false
+        val anterior = JSONObject(arquivoAnterior.readText())
         val dividasAnteriores = anterior.optJSONArray("dividas") ?: JSONArray()
-        val novasDividas = JSONArray()
+        val dividasAtuais = dados.getJSONArray("dividas")
+
+        fun chaveDe(d: JSONObject) =
+            "${d.optString("descricao")}|${d.optString("categoria")}|${d.optString("para_quem")}"
+
+        val chavesExistentes = HashSet<String>()
+        for (i in 0 until dividasAtuais.length()) chavesExistentes.add(chaveDe(dividasAtuais.getJSONObject(i)))
+
+        var adicionou = false
         for (i in 0 until dividasAnteriores.length()) {
             val d = dividasAnteriores.getJSONObject(i)
             val ehFixaPorCategoria = d.optString("categoria") in categoriasFixas
             val ehRecorrente = d.optBoolean("recorrente", false)
             if (!ehFixaPorCategoria && !ehRecorrente) continue
+            val chave = chaveDe(d)
+            if (chavesExistentes.contains(chave)) continue
+
             val copia = JSONObject(d.toString())
             copia.remove("valor_atualizado")
             copia.remove("dias_atraso")
@@ -91,10 +120,11 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
                 val dia = vencAnterior.substring(8, 10)
                 copia.put("vencimento", "$mes-$dia")
             }
-            novasDividas.put(copia)
+            dividasAtuais.put(copia)
+            chavesExistentes.add(chave)
+            adicionou = true
         }
-        novo.put("dividas", novasDividas)
-        return novo
+        return adicionou
     }
 
     private fun salvarMes(mes: String, dados: JSONObject) {

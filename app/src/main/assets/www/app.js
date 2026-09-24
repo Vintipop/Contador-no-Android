@@ -671,10 +671,18 @@ document.getElementById("gerarBackupBtn").addEventListener("click", async () => 
   try {
     const backup = await api("GET", "/api/backup");
     const texto = JSON.stringify(backup);
-    const area = document.getElementById("backupTexto");
-    area.value = texto;
-    area.style.display = "block";
-    document.getElementById("copiarBackupBtn").style.display = "block";
+    const nomeArquivo = `conta-dor-backup-${mesAtual}.txt`;
+
+    if (window.AndroidNativo && window.AndroidNativo.salvarArquivoTexto) {
+      // Dispara o seletor nativo de "salvar como" do Android
+      window.AndroidNativo.salvarArquivoTexto(nomeArquivo, texto);
+    } else {
+      // Fallback (fora do app Android, ex: testando num navegador comum)
+      const area = document.getElementById("backupTexto");
+      area.value = texto;
+      area.style.display = "block";
+      document.getElementById("copiarBackupBtn").style.display = "block";
+    }
   } catch (erro) {
     alert("Não deu pra gerar o backup: " + erro.message);
   }
@@ -691,14 +699,22 @@ document.getElementById("copiarBackupBtn").addEventListener("click", () => {
   }
 });
 
-document.getElementById("restaurarBackupBtn").addEventListener("click", async () => {
-  const texto = document.getElementById("restaurarTexto").value.trim();
-  if (!texto) return;
+document.getElementById("restaurarArquivoInput").addEventListener("change", async (e) => {
+  const arquivo = e.target.files[0];
+  if (!arquivo) return;
+
+  const texto = await new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = () => resolve(leitor.result);
+    leitor.onerror = reject;
+    leitor.readAsText(arquivo);
+  });
+
   let backup;
   try {
     backup = JSON.parse(texto);
   } catch (erro) {
-    alert("Esse texto não parece um backup válido.");
+    alert("Esse arquivo não parece um backup válido.");
     return;
   }
   if (!confirm("Isso vai substituir os dados dos meses que já existirem no backup. Continuar?")) return;
@@ -710,6 +726,7 @@ document.getElementById("restaurarBackupBtn").addEventListener("click", async ()
   } catch (erro) {
     alert("Não deu pra restaurar: " + erro.message);
   }
+  e.target.value = "";
 });
 
 // ---------------------------------------------------------------------
