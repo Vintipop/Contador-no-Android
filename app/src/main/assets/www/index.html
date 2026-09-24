@@ -9,21 +9,29 @@
 <body>
 
 <header class="topo">
-  <button type="button" class="icone-topo icone-engrenagem" id="abrirConfigBtn" title="Configurações">⚙️</button>
   <div class="topo-titulo">
     <h1>Conta<span class="dor">...Dor</span></h1>
-    <p class="slogan">ele conta as suas contas, que é o motivo da nossa dor.</p>
+    <p class="slogan">Seu dinheiro, do seu jeito.</p>
   </div>
-  <button type="button" class="icone-topo icone-avatar" id="abrirPerfilBtn" title="Perfil">
-    <img id="avatarTopo" src="" alt="" style="display:none;">
-    <span id="avatarInicial">🙂</span>
-  </button>
+  <div class="topo-icones">
+    <button type="button" class="icone-topo icone-engrenagem" id="abrirConfigBtn" title="Configurações">⚙️</button>
+    <button type="button" class="icone-topo icone-avatar" id="abrirPerfilBtn" title="Perfil">
+      <img id="avatarTopo" src="" alt="" style="display:none;">
+      <span id="avatarInicial">🙂</span>
+    </button>
+  </div>
 </header>
 
 <nav class="abas">
-  <button type="button" class="aba-btn ativa" data-aba="principal">Principal</button>
-  <button type="button" class="aba-btn" data-aba="calculadora">Calculadora</button>
-  <button type="button" class="aba-btn" data-aba="investimentos">Investimentos</button>
+  <button type="button" class="aba-btn ativa" data-aba="principal">
+    <span class="aba-icone">🏠</span><span>Principal</span>
+  </button>
+  <button type="button" class="aba-btn" data-aba="calculadora">
+    <span class="aba-icone">🧮</span><span>Calculadora</span>
+  </button>
+  <button type="button" class="aba-btn" data-aba="investimentos">
+    <span class="aba-icone">📈</span><span>Investimentos</span>
+  </button>
 </nav>
 
 <main class="container">
@@ -113,7 +121,7 @@
   </section>
 
   <section class="card">
-    <h2>Dívidas do mês</h2>
+    <h2>Contas do mês</h2>
     <div id="listaDividas"></div>
   </section>
 

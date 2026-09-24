@@ -8,7 +8,27 @@ const CATEGORIA_LABEL = {
   outros: "Outros",
 };
 
-const STATUS_LABEL = { a_pagar: "A pagar", pago: "Pago", atrasado: "Atrasado" };
+const CATEGORIA_ICONE = {
+  aluguel: "🏠",
+  cartao: "💳",
+  emprestimo: "💰",
+  mercado: "🛒",
+  contas_fixas: "⚡",
+  pessoal: "👤",
+  outros: "📦",
+};
+
+const CATEGORIA_COR = {
+  aluguel: "#E7DFC9",
+  cartao: "#F6D9C4",
+  emprestimo: "#F3D6D2",
+  mercado: "#D9EAD9",
+  contas_fixas: "#FBEFC7",
+  pessoal: "#DDEAF0",
+  outros: "#E6E2F0",
+};
+
+const STATUS_LABEL = { a_pagar: "🕐 Pendente", pago: "✓ Pago", atrasado: "⚠ Atrasado" };
 
 let mesAtual = mesAtualPadrao();
 let outrasEntradasRascunho = [];
@@ -152,10 +172,13 @@ function renderDividas(dados) {
       ? `<div class="divida-juros">com juros hoje: ${formatarMoeda(d.valor_atualizado)} (${d.dias_atraso}d atraso)</div>`
       : "";
     item.innerHTML = `
-      <div class="divida-info">
-        <div class="divida-desc">${d.descricao}${d.recorrente ? " 🔁" : ""}</div>
-        <div class="divida-meta">${d.para_quem ? d.para_quem + " · " : ""}${CATEGORIA_LABEL[d.categoria] || d.categoria} · vence ${formatarDataCurta(d.vencimento)}</div>
-        ${jurosHtml}
+      <div class="divida-linha">
+        <div class="divida-icone" style="background:${CATEGORIA_COR[d.categoria] || "#E6E2F0"}">${CATEGORIA_ICONE[d.categoria] || "📦"}</div>
+        <div class="divida-info">
+          <div class="divida-desc">${d.descricao}${d.recorrente ? " 🔁" : ""}</div>
+          <div class="divida-meta">${d.para_quem ? d.para_quem + " · " : ""}${CATEGORIA_LABEL[d.categoria] || d.categoria} · vence ${formatarDataCurta(d.vencimento)}</div>
+          ${jurosHtml}
+        </div>
       </div>
       <div class="divida-acoes">
         <span class="divida-valor">${formatarMoeda(d.valor)}</span>
