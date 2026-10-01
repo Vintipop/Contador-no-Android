@@ -503,15 +503,40 @@ document.getElementById("formDivida").addEventListener("submit", async (e) => {
 // Config: tema + perfil
 // ---------------------------------------------------------------------
 
-let configAtual = { tema: "padrao", perfil: { nome: "", foto: "", banner: "" } };
+let configAtual = {
+  tema: "padrao",
+  perfil: { nome: "", foto: "", banner: "" },
+  custom: { primaria: "#235E58", acento: "#E08A4B" },
+};
 let perfilFotoBase64 = "";
 let perfilBannerBase64 = "";
 
-function aplicarTema(tema) {
+const PALETA_SUGESTOES = [
+  { primaria: "#235E58", acento: "#E08A4B" },
+  { primaria: "#0B5FA5", acento: "#FFC43D" },
+  { primaria: "#7A1745", acento: "#FF8FB1" },
+  { primaria: "#4C1D95", acento: "#A78BFA" },
+  { primaria: "#1D4E3A", acento: "#F2C94C" },
+  { primaria: "#8A1C1C", acento: "#F2A65A" },
+];
+
+function aplicarTema(tema, cores) {
   document.documentElement.setAttribute("data-tema", tema);
+  // limpa qualquer cor customizada aplicada antes de trocar de tema
+  document.documentElement.style.removeProperty("--primary");
+  document.documentElement.style.removeProperty("--titulo-cor");
+  document.documentElement.style.removeProperty("--accent");
+
+  if (tema === "custom" && cores) {
+    document.documentElement.style.setProperty("--primary", cores.primaria);
+    document.documentElement.style.setProperty("--titulo-cor", cores.primaria);
+    document.documentElement.style.setProperty("--accent", cores.acento);
+  }
+
   document.querySelectorAll(".tema-btn").forEach((b) => {
     b.classList.toggle("ativo", b.dataset.tema === tema);
   });
+  document.getElementById("customCoresPainel").style.display = tema === "custom" ? "block" : "none";
 }
 
 function aplicarAvatarTopo(fotoBase64) {
@@ -527,19 +552,57 @@ function aplicarAvatarTopo(fotoBase64) {
   }
 }
 
+function renderPaletaSugestoes() {
+  const container = document.getElementById("paletaSugestoes");
+  container.innerHTML = "";
+  PALETA_SUGESTOES.forEach((cores) => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "paleta-cor";
+    botao.style.background = `linear-gradient(135deg, ${cores.primaria} 50%, ${cores.acento} 50%)`;
+    botao.addEventListener("click", async () => {
+      configAtual.custom = cores;
+      document.getElementById("corPrimariaInput").value = cores.primaria;
+      document.getElementById("corPrimariaHex").value = cores.primaria;
+      document.getElementById("corAcentoInput").value = cores.acento;
+      document.getElementById("corAcentoHex").value = cores.acento;
+      aplicarTema("custom", cores);
+      await salvarCoresCustom(cores);
+    });
+    container.appendChild(botao);
+  });
+}
+
+async function salvarCoresCustom(cores) {
+  try {
+    configAtual = await api("POST", "/api/config", { tema: "custom", custom: cores });
+  } catch (erro) {
+    // se falhar, a cor ainda fica aplicada nessa sessão
+  }
+}
+
 async function carregarConfig() {
   try {
     configAtual = await api("GET", "/api/config");
   } catch (erro) {
-    configAtual = { tema: "padrao", perfil: { nome: "", foto: "", banner: "" } };
+    configAtual = {
+      tema: "padrao",
+      perfil: { nome: "", foto: "", banner: "" },
+      custom: { primaria: "#235E58", acento: "#E08A4B" },
+    };
   }
-  aplicarTema(configAtual.tema || "padrao");
+  const cores = configAtual.custom || { primaria: "#235E58", acento: "#E08A4B" };
+  document.getElementById("corPrimariaInput").value = cores.primaria;
+  document.getElementById("corPrimariaHex").value = cores.primaria;
+  document.getElementById("corAcentoInput").value = cores.acento;
+  document.getElementById("corAcentoHex").value = cores.acento;
+  aplicarTema(configAtual.tema || "padrao", cores);
   aplicarAvatarTopo(configAtual.perfil?.foto || "");
 }
 
 document.querySelectorAll(".tema-btn").forEach((btn) => {
   btn.addEventListener("click", async () => {
-    aplicarTema(btn.dataset.tema);
+    aplicarTema(btn.dataset.tema, configAtual.custom);
     try {
       await api("POST", "/api/config", { tema: btn.dataset.tema });
     } catch (erro) {
@@ -547,6 +610,39 @@ document.querySelectorAll(".tema-btn").forEach((btn) => {
     }
   });
 });
+
+function hexValido(valor) {
+  return /^#([0-9A-Fa-f]{6})$/.test(valor);
+}
+
+document.getElementById("corPrimariaInput").addEventListener("input", (e) => {
+  document.getElementById("corPrimariaHex").value = e.target.value;
+  aplicarTema("custom", { primaria: e.target.value, acento: document.getElementById("corAcentoInput").value });
+});
+document.getElementById("corAcentoInput").addEventListener("input", (e) => {
+  document.getElementById("corAcentoHex").value = e.target.value;
+  aplicarTema("custom", { primaria: document.getElementById("corPrimariaInput").value, acento: e.target.value });
+});
+document.getElementById("corPrimariaHex").addEventListener("change", (e) => {
+  if (hexValido(e.target.value)) document.getElementById("corPrimariaInput").value = e.target.value;
+});
+document.getElementById("corAcentoHex").addEventListener("change", (e) => {
+  if (hexValido(e.target.value)) document.getElementById("corAcentoInput").value = e.target.value;
+});
+
+async function salvarCoresCustomDosCampos() {
+  const cores = {
+    primaria: document.getElementById("corPrimariaInput").value,
+    acento: document.getElementById("corAcentoInput").value,
+  };
+  aplicarTema("custom", cores);
+  await salvarCoresCustom(cores);
+}
+
+document.getElementById("corPrimariaInput").addEventListener("change", salvarCoresCustomDosCampos);
+document.getElementById("corAcentoInput").addEventListener("change", salvarCoresCustomDosCampos);
+
+renderPaletaSugestoes();
 
 document.getElementById("abrirConfigBtn").addEventListener("click", () => mostrarPainel("config"));
 

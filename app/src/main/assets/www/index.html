@@ -211,7 +211,26 @@
       <button type="button" class="tema-btn" data-tema="padrao">Padrão</button>
       <button type="button" class="tema-btn" data-tema="escuro">Escuro</button>
       <button type="button" class="tema-btn" data-tema="daltonico">Daltônico</button>
-      <button type="button" class="tema-btn" data-tema="vibrante">Vibrante</button>
+      <button type="button" class="tema-btn" data-tema="custom">Custom</button>
+    </div>
+
+    <div id="customCoresPainel" style="display:none; margin-top:16px;">
+      <div class="form-linha">
+        <label for="corPrimariaInput">Cor principal (títulos, destaques)</label>
+        <div class="cor-linha">
+          <input type="color" id="corPrimariaInput" value="#235E58">
+          <input type="text" id="corPrimariaHex" placeholder="#235E58">
+        </div>
+      </div>
+      <div class="form-linha">
+        <label for="corAcentoInput">Cor de destaque (botões)</label>
+        <div class="cor-linha">
+          <input type="color" id="corAcentoInput" value="#E08A4B">
+          <input type="text" id="corAcentoHex" placeholder="#E08A4B">
+        </div>
+      </div>
+      <p class="vazio" style="margin:8px 0 4px; text-align:left;">Ou escolha rapidinho:</p>
+      <div class="paleta-grade" id="paletaSugestoes"></div>
     </div>
   </section>
 
@@ -235,6 +254,12 @@
       Escolher arquivo de backup
       <input type="file" id="restaurarArquivoInput" accept=".txt,text/plain" style="display:none;">
     </label>
+  </section>
+
+  <section class="card sobre-card">
+    <h2>Sobre o app</h2>
+    <p class="sobre-linha">Conta...Dor — versão 2.2</p>
+    <p class="sobre-linha">By: Ferreira</p>
   </section>
 </div>
 

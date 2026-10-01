@@ -7,6 +7,7 @@
   --ink-soft: #6B6459;
   --primary: #235E58;
   --primary-dark: #163F3B;
+  --titulo-cor: #163F3B;
   --accent: #E08A4B;
   --success: #4C8C6B;
   --success-bg: #E7F1EA;
@@ -26,7 +27,8 @@ html[data-tema="escuro"] {
   --ink-soft: #A6A196;
   --primary: #4FA69C;
   --primary-dark: #0F2624;
-  --accent: #F0A468;
+  --titulo-cor: #FFFFFF;
+  --accent: #4ADE97;
   --success: #6FBF95;
   --success-bg: #1E2E27;
   --danger: #E08776;
@@ -133,7 +135,7 @@ body {
   font-style: italic;
   font-size: 2.1rem;
   margin: 0;
-  color: var(--primary-dark);
+  color: var(--titulo-cor);
   letter-spacing: -0.01em;
 }
 
@@ -184,7 +186,7 @@ body {
   font-weight: 600;
   font-size: 1.15rem;
   margin: 0 0 14px;
-  color: var(--primary-dark);
+  color: var(--titulo-cor);
 }
 
 /* Seletor de mês */
@@ -197,7 +199,7 @@ body {
 
 .seletor-mes label {
   font-weight: 700;
-  color: var(--primary-dark);
+  color: var(--titulo-cor);
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.06em;
@@ -537,7 +539,7 @@ body {
 
 .invest-tabela-linha.cabecalho {
   font-weight: 700;
-  color: var(--primary-dark);
+  color: var(--titulo-cor);
   text-transform: uppercase;
   font-size: 0.7rem;
   letter-spacing: 0.04em;
@@ -772,4 +774,56 @@ body {
   align-items: flex-start;
   flex: 1;
   min-width: 0;
+}
+
+/* Tema custom: seletor de cor + hex + paleta de sugestões */
+.cor-linha {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cor-linha input[type="color"] {
+  width: 44px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.cor-linha input[type="text"] {
+  flex: 1;
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9rem;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.paleta-grade {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.paleta-cor {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--linha);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Sobre o app */
+.sobre-card { text-align: center; }
+
+.sobre-linha {
+  margin: 4px 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
 }

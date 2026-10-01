@@ -11,8 +11,8 @@ android {
         applicationId = "com.contador.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "2.1"
+        versionCode = 6
+        versionName = "2.2"
     }
 
     signingConfigs {

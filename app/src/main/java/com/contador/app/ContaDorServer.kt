@@ -28,7 +28,7 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
     )
     private val categoriasComJuros = setOf("cartao", "emprestimo")
     private val categoriasFixas = setOf("aluguel", "contas_fixas", "emprestimo")
-    private val temasValidos = setOf("padrao", "escuro", "daltonico", "vibrante")
+    private val temasValidos = setOf("padrao", "escuro", "daltonico", "custom")
     private val mesRegex = Regex("""\d{4}-\d{2}""")
     private val dataFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
@@ -142,21 +142,28 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
     // Config (tema escolhido + perfil do usuário)
     // ---------------------------------------------------------------
 
+    private fun configPadrao(): JSONObject = JSONObject().apply {
+        put("tema", "padrao")
+        put("perfil", JSONObject().apply {
+            put("nome", "")
+            put("foto", "")
+            put("banner", "")
+        })
+        put("custom", JSONObject().apply {
+            put("primaria", "#235E58")
+            put("acento", "#E08A4B")
+        })
+    }
+
     private fun carregarConfig(): JSONObject {
-        if (!configPath.exists()) {
-            return JSONObject().apply {
-                put("tema", "padrao")
-                put("perfil", JSONObject().apply {
-                    put("nome", "")
-                    put("foto", "")
-                    put("banner", "")
-                })
-            }
-        }
+        if (!configPath.exists()) return configPadrao()
         val config = JSONObject(configPath.readText())
         if (!config.has("tema")) config.put("tema", "padrao")
         if (!config.has("perfil")) {
             config.put("perfil", JSONObject().apply { put("nome", ""); put("foto", ""); put("banner", "") })
+        }
+        if (!config.has("custom")) {
+            config.put("custom", JSONObject().apply { put("primaria", "#235E58"); put("acento", "#E08A4B") })
         }
         return config
     }
@@ -365,6 +372,16 @@ class ContaDorServer(private val context: Context, port: Int) : NanoHTTPD(port) 
                     perfilAtual.put(k, perfilNovo.get(k))
                 }
                 config.put("perfil", perfilAtual)
+            }
+            if (corpo.has("custom")) {
+                val customAtual = config.optJSONObject("custom") ?: JSONObject()
+                val customNovo = corpo.getJSONObject("custom")
+                val chaves = customNovo.keys()
+                while (chaves.hasNext()) {
+                    val k = chaves.next()
+                    customAtual.put(k, customNovo.get(k))
+                }
+                config.put("custom", customAtual)
             }
             salvarConfig(config)
             return jsonOk(config)
